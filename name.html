@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>입력 및 삭제 가능한 테이블</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            padding-top: 50px;
+            font-family: Arial, sans-serif;
+        }
+
+        #outer-box {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: fit-content;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group label {
+            width: 80px;
+            text-align: right;
+            margin-right: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="date"] {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .action-button {
+            /* 버튼 스타일 통합 */
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-button {
+            background-color: #4CAF50;
+        }
+
+        .add-button:hover {
+            background-color: #45a049;
+        }
+
+        .delete-button {
+            /* 삭제 버튼 스타일 */
+            background-color: #f44336;
+            /* 빨간색 */
+            padding: 4px 8px;
+            /* 셀 안에 들어갈 정도로 작게 */
+            font-size: 0.8em;
+            margin-top: 0;
+            /* 필요 없는 마진 제거 */
+        }
+
+        .delete-button:hover {
+            background-color: #da190b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        /* 삭제 버튼이 들어갈 마지막 열 너비 조절 */
+        th:last-child,
+        td:last-child {
+            width: 60px;
+            /* '삭제' 버튼을 위한 공간 */
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="outer-box">
+        <h1>나만의 테이블 만들기</h1>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="inputDOB">생년월일:</label>
+                <input type="date" id="inputDOB">
+            </div>
+            <div class="input-group">
+                <label for="inputName">이름:</label>
+                <input type="text" id="inputName" placeholder="이름을 입력하세요">
+            </div>
+            <div class="input-group">
+                <label for="inputGender">성별:</label>
+                <input type="text" id="inputGender" placeholder="성별을 입력하세요 (남/여)">
+            </div>
+            <div class="input-group">
+                <label for="inputFeature">특징:</label>
+                <input type="text" id="inputFeature" placeholder="특징을 입력하세요">
+            </div>
+            <div class="input-group">
+                <label for="inputHobby">취미:</label>
+                <input type="text" id="inputHobby" placeholder="취미를 입력하세요">
+            </div>
+            <button id="addRowBtn" class="action-button add-button">테이블에 추가</button>
+        </div>
+
+        <div id="table-container"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.getElementById('table-container');
+            const addRowBtn = document.getElementById('addRowBtn');
+            const inputDOB = document.getElementById('inputDOB');
+            const inputName = document.getElementById('inputName');
+            const inputGender = document.getElementById('inputGender');
+            const inputFeature = document.getElementById('inputFeature');
+            const inputHobby = document.getElementById('inputHobby');
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            // 헤더 생성: '삭제' 열 추가
+            const headerRow = document.createElement('tr');
+            const headers = ['생년월일', '이름', '성별', '특징', '취미', '삭제']; // '삭제' 열 추가
+            headers.forEach(headerText => {
+                const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            table.appendChild(tbody);
+
+            container.appendChild(table);
+
+            // 삭제 버튼 이벤트 리스너 (Delegation 사용)
+            // tbody에 이벤트 리스너를 한 번만 등록하여 효율성을 높임
+            tbody.addEventListener('click', function (event) {
+                if (event.target.classList.contains('delete-button')) {
+                    // 클릭된 요소가 'delete-button' 클래스를 가지고 있는지 확인
+                    const rowToDelete = event.target.closest('tr'); // 가장 가까운 tr (행) 찾기
+                    if (rowToDelete) {
+                        tbody.removeChild(rowToDelete); // 해당 행 삭제
+                    }
+                }
+            });
+
+            // '테이블에 추가' 버튼 클릭 이벤트
+            addRowBtn.addEventListener('click', function () {
+                const newRow = document.createElement('tr');
+
+                let dob = inputDOB.value;
+
+                if (dob) {
+                    const dateObj = new Date(dob);
+                    dob = dateObj.toLocaleDateString('ko-KR');
+                } else {
+                    alert('생년월일을 입력해주세요!');
+                    return;
+                }
+
+                const name = inputName.value.trim();
+                const gender = inputGender.value.trim();
+                const feature = inputFeature.value.trim();
+                const hobby = inputHobby.value.trim();
+
+                if (name === '' || gender === '' || feature === '' || hobby === '') {
+                    alert('모든 필드를 입력해주세요!');
+                    return;
+                }
+
+                const newRowData = [
+                    dob,
+                    name,
+                    gender,
+                    feature,
+                    hobby
+                ];
+
+                newRowData.forEach(cellData => {
+                    const td = document.createElement('td');
+                    td.textContent = cellData;
+                    newRow.appendChild(td);
+                });
+
+                // 삭제 버튼 셀 추가
+                const deleteCell = document.createElement('td');
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '삭제';
+                deleteButton.classList.add('action-button', 'delete-button'); // CSS 클래스 추가
+                // deleteButton.addEventListener('click', function() { // 개별 버튼에 리스너 추가하는 방식 (비효율적)
+                //     tbody.removeChild(newRow);
+                // });
+                deleteCell.appendChild(deleteButton);
+                newRow.appendChild(deleteCell); // 새 행에 삭제 버튼 셀 추가
+
+                tbody.appendChild(newRow);
+
+                // 입력 필드 초기화
+                inputDOB.value = '';
+                inputName.value = '';
+                inputGender.value = '';
+                inputFeature.value = '';
+                inputHobby.value = '';
+                inputDOB.focus();
+            });
+        });
+    </script>
+
+</body>
+
+</html>
